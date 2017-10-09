@@ -1,0 +1,7 @@
+create table Human ( map_id integer,x number(2),human_id integer primary key,starved_day number(2),building_id integer,y number(2) ); 
+create table Resource ( number integer,resource_id integer ); 
+create table Building ( map_id integer,x number(2),building_kind_id integer,isBenefitted number(1),building_id integer primary key,y number(2) ); 
+create table AIPlayer ( color number(1),soldier_number integer,soldier_rate integer,level integer,player_id integer primary key ); 
+create table Campaign ( user_id integer primary key,campaign_id integer,mission_id integer ); 
+create table Reservation ( type integer,reservation_id integer primary key ); 
+create table WorldRigion ( x number(2),map_id integer,region_id integer primary key,y number(2) ); 
