@@ -39,6 +39,12 @@ public class SQLiteManager {
 			return false;
 		}
 	}
+	
+	public boolean exists() {
+		File f = new File(dbFilename);
+		return f.exists();
+	}
+	
 	public void close() throws SQLException {
 		this.conn.close();
 	}

@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.Hashtable;
 
 public class DB {
+	public static final String DB_DYNAMIC = "ddb.db", DB_STATIC = "sdb.db";
 	private static Hashtable<String, SQLiteManager> managers = new Hashtable<>();
 	public static SQLiteManager getInstance(String name) throws SQLException {
 		if(managers.get(name) == null) {
@@ -14,18 +15,32 @@ public class DB {
 		}
 		return managers.get(name);
 	}
-	public static void init() throws SQLException, IOException {
-		SQLiteManager sdb = getInstance("sdb.db");
-		sdb.readSQL("sqls.txt");
-		SQLiteManager ddb = getInstance("ddb.db");
-		ddb.readSQL("dsqls.txt");
+	public static void init(String ddbname, int type) throws SQLException, IOException {
+		SQLiteManager sdb = getInstance(DB.DB_STATIC);
+		SQLiteManager ddb = getInstance(ddbname);
+		switch(type) {
+		case 1:
+			Logger.getInstance().add("DB.init", "load sdb data");
+			sdb.readSQL("sqls.txt");
+		case 2:
+			ddb.readSQL("dsqls.txt");
+			break;			
+		}
 	}
-	public static boolean delete() throws SQLException, IOException {
+	public static void init(int type) throws SQLException, IOException {
+		init("ddb.db", type);
+	}
+	public static boolean delete(int type) throws SQLException, IOException {
 		boolean isSuccess = true;
-		SQLiteManager sdb = getInstance("sdb.db");
-		isSuccess = isSuccess && sdb.delete();
-		SQLiteManager ddb = getInstance("ddb.db");
-		isSuccess = isSuccess && ddb.delete();
+		switch(type) {
+		case 1:
+			SQLiteManager sdb = getInstance(DB.DB_STATIC);
+			isSuccess = isSuccess && sdb.delete();
+		case 2:
+			SQLiteManager ddb = getInstance(DB.DB_DYNAMIC);
+			isSuccess = isSuccess && ddb.delete();
+			break;
+		}
 		return isSuccess;
 	}
 }

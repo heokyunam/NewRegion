@@ -15,8 +15,8 @@ public class TestSQLiteManager extends TestCase {
 	@Test
 	public void test1() throws SQLException, IOException {
 		Logger.getInstance().addTags("db.delete", "db.readSQL");
-		assertTrue(DB.delete());
-		DB.init();
+		assertTrue(DB.delete(1));
+		DB.init(1);
 	}
 
 }
