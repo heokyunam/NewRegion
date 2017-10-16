@@ -1,5 +1,5 @@
 package main.java.com.overtheinfinite.newregion.game.element;
 
 public interface ButtonListener {
-	public void onTouch(String label);
+	public void onTouch(ButtonData btn);
 }
