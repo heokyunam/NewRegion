@@ -1,6 +1,6 @@
 package test.java.com.overtheinfinite.newregion.game;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.sql.ResultSet;
@@ -81,8 +81,25 @@ public class TestBuilding {
 	}
 
 	@Test
-	public void testExecute() {
+	public void testExecute() throws SQLException {
+		Building building = new Building();
+		SQLiteManager ddb = DB.getInstance(DB.DB_DYNAMIC);
+		ddb.execute("insert into Building"
+				+ "(building_id, building_kind_id, x, y,"
+				+ "isBenefitted, map_id)"
+				+ " values (4, 1, 4, 1, 0, 1)");
+		ddb.execute("update Resource set number = number + 100"
+				+ " where resource_id = 2");
+		Logger.getInstance().addTags("execute");
+		boolean result = building.execute(5, 4);
 		
+		assertTrue(result);
+		ResultSet set = ddb.query("select resource_id, number"
+				+ " from Resource"
+				+ " where resource_id = 6");
+		
+		set.next();
+		assertEquals(1, set.getInt("number"));
 	}
 
 	@Test

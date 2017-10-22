@@ -156,16 +156,22 @@ public class Building implements ButtonListener {
 						+ " where resource_id = ?";
 				ResultSet lackSet = this.ddb.query(lackSQL, rsrc);
 				lackSet.next();
+				Logger.getInstance().add("execute", 
+						"lack resource : " + rsrc
+						+ "/" + lackSet.getInt("number")
+						+ "+" + value);
 				
 				//실제 가지고 있는 값 < 필요한 값
-				if(lackSet.getInt("number") + value > 0) {
+				if(lackSet.getInt("number") + value < 0) {
 					return false;
 				}
 			}
 		}
-		funcSet.beforeFirst();
+		funcSet = this.sdb.query(funcSQL, function_id);
 		//3. resource 증가
 		while(funcSet.next()) {
+			Logger.getInstance().add("execute", 
+					"add resource : " + funcSet.getInt("resource_id"));
 			addValue(funcSet, isBenefitted);
 		}		
 		//4. 월드맵 기능시 어떻게 처리할 것인가?
