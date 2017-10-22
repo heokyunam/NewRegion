@@ -29,4 +29,8 @@ public class ViewData {
 		set.next();
 		return set.getInt("number");
 	}
+	
+	public String toString() {
+		return this.data_id + "/" + this.filename;
+	}
 }

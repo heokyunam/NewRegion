@@ -28,5 +28,7 @@ public class ButtonData {
 		return id;
 	}
 		
-	
+	public String toString() {
+		return this.id + "/" + this.label + "/" + this.filename;
+	}
 }

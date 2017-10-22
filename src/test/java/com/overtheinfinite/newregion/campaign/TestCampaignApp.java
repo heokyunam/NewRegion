@@ -19,9 +19,9 @@ public class TestCampaignApp extends TestCase{
 		//Logger.getInstance().addTags("sql", "sql.args", "sql.args.loop", "sql.prep");
 		Logger.getInstance().addTags("campaign.load");
 		DB.delete(2);
-		DB.init(1);
+		DB.init(2);
 
-		SQLiteManager ddb = DB.getInstance("ddb.db");
+		SQLiteManager ddb = DB.getInstance(DB.DB_DYNAMIC);
 		ddb.execute("update Campaign set campaign_id = ?", 3);
 		
 		CampaignApp ca = new CampaignApp();
@@ -31,13 +31,19 @@ public class TestCampaignApp extends TestCase{
 		Iterator<MessageData> it = ca.iterator();
 		MessageData data = it.next();
 		String actor = data.getActor();
-		assertEquals("chapter1", actor);
-		
+		assertEquals("chapter1", actor);		
+	}
+	@Test
+	public void test2() throws SQLException, IOException {
+		DB.delete(2);
+		DB.init(2);
+
+		SQLiteManager ddb = DB.getInstance(DB.DB_DYNAMIC);
+		CampaignApp ca = new CampaignApp();
 		assertTrue(!ca.checkCondition());
 		
 		ddb.execute("update Resource set number = ? where resource_id = ?"
 				, 3, 1);
 		assertTrue(ca.checkCondition());
-		
 	}
 }

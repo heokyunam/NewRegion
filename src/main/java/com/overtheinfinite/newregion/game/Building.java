@@ -2,44 +2,77 @@ package main.java.com.overtheinfinite.newregion.game;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedList;
 
 import main.java.com.overtheinfinite.newregion.game.element.ButtonData;
 import main.java.com.overtheinfinite.newregion.game.element.ButtonListener;
 import main.java.com.overtheinfinite.newregion.game.element.ViewData;
 import main.java.com.overtheinfinite.newregion.tools.DB;
+import main.java.com.overtheinfinite.newregion.tools.Logger;
 import main.java.com.overtheinfinite.newregion.tools.SQLiteManager;
 
+/**
+ * [TODO] 
+ * 1. 월드맵 이동 기능
+ * 2. nextTurn 함수
+ * 3. onTouch 함수
+ */
 public class Building implements ButtonListener {
+	private SQLiteManager sdb, ddb;
 	private static final int FUNC_PASSIVE = 1, FUNC_INIT = 2, FUNC_NEXTTURN = 3,
 			FUNC_NORMAL = 4, FUNC_WORLDMAP = 5, FUNC_TRAIN = 6;
-	//빈 타일을 터치해 빌딩을 건설해야할 때 이에 걸맞는 값으로
+	public Building() throws SQLException {
+		this.sdb = DB.getInstance(DB.DB_STATIC);
+		this.ddb = DB.getInstance(DB.DB_DYNAMIC);
+	}
+	/**빈 타일을 터치해 빌딩을 건설해야할 때 이에 걸맞는 값으로
+	 * 
+	 * @return
+	 * @throws SQLException
+	 */
 	public ButtonData[] getAllBuildingData() throws SQLException {
-		String getAllBuildingSQL = "select b.building_id, b.name, i.image_name"
+		String getAllBuildingSQL = "select b.building_id id"
+				+ ", b.name name, i.image_name image"
 				+ " from Building b, ImageName i"
 				+ " where b.button_image_id = i.image_id;";
-		SQLiteManager sdb = DB.getInstance(DB.DB_STATIC);
-		ResultSet allBuildingSet = sdb.query(getAllBuildingSQL);
-		allBuildingSet.last();
-		ButtonData[] btns = new ButtonData[allBuildingSet.getRow()];
-		allBuildingSet.beforeFirst();
-		for(int i = 0; allBuildingSet.next(); i++) {
-			btns[i] = new ButtonData(this, 
-					allBuildingSet.getString("i.image_name"),
+		ResultSet allBuildingSet = this.sdb.query(getAllBuildingSQL);
+		LinkedList<ButtonData> datas = new LinkedList<>();
+		while(allBuildingSet.next()) {
+			ButtonData temp = new ButtonData(new Builder(), 
+					allBuildingSet.getString("image"),
 					"build",
-					allBuildingSet.getInt("b.building_id"));
+					allBuildingSet.getInt("id"));
+			datas.add(temp);
 		}
+		ButtonData[] btns = new ButtonData[datas.size()];
+		datas.toArray(btns);
 		return btns;
 	}
 	
+	/**
+	 * ddb의 빌딩 id를 입력해주면 이에 필요한 뷰와 버튼 데이터를 반환해준다
+	 * @param views
+	 * @param btns
+	 * @param building_id
+	 * @throws SQLException
+	 */
 	public void getBuildingData(ViewData[] views, ButtonData[] btns, int building_id) throws SQLException {
+		//get static building id	
+		String buildingSQL = "select building_kind_id from Building where building_id = ?";
+		ResultSet buildingSet = this.ddb.query(buildingSQL, building_id);
+		buildingSet.next();
+		building_id = buildingSet.getInt("building_kind_id");
+		//building_id를 처음 쓸때
+		
 		//load about button data
-		String btnSQL = "select f.function_id id, i.image_name image"
+		String btnSQL = "select f.function_id id, f.name name, i.image_name image"
 				+ " from BuildingFunction f, Imagename i"
 				+ " where f.button_image_id = i.image_id"
 				+ " and f.building_id = ?";
-		SQLiteManager sdb = DB.getInstance(DB.DB_STATIC);
-		ResultSet btnSet = sdb.query(btnSQL, building_id);
+		ResultSet btnSet = this.sdb.query(btnSQL, building_id);
+		btnSet.next();
 		for(int i = 0; btnSet.next(); i++) {
+			//Logger.getInstance().add("getBuildingData", btnSet.getString("name"));
 			btns[i] = new ButtonData(this,
 					btnSet.getString("image"),
 					"function",
@@ -51,7 +84,7 @@ public class Building implements ButtonListener {
 				+ " from BuildingView v, Resource r"
 				+ " where v.resource_id = r.resource_id"
 				+ " and v.building_id = ?";
-		ResultSet viewSet = sdb.query(viewSQL, building_id);
+		ResultSet viewSet = this.sdb.query(viewSQL, building_id);
 		for(int i = 0; viewSet.next(); i++) {
 			views[i] = new ViewData(
 					viewSet.getString("image"),
@@ -62,25 +95,53 @@ public class Building implements ButtonListener {
 	}
 	
 	//다음 턴으로 넘길 때 빌딩들 중 처리해야하는 패시브들을 처리
-	public void nextTurn() {
+	public void nextTurn() throws SQLException {
+		//1. sdb에서 빌딩 기능 중 nextTurn 기능인 기능을 뽑아옴
+		String funcSQL = "select function_id, building_id, resource_id, "
+				+ " value, add_value"
+				+ " from BuildingFunction"
+				+ " where type = ?";
+		ResultSet funcSet = this.sdb.query(funcSQL, FUNC_PASSIVE);
 		
+		while(funcSet.next()) {
+			Logger.getInstance().add("nextTurn", 
+					"resource_id : " + funcSet.getString("resource_id"));
+			//2. ddb에서 해당 기능을 가진 빌딩을 찾아옴
+			String buildingSQL = "select building_id, isBenefitted"
+					+ " from Building"
+					+ " where building_kind_id = ?";
+			//3. 해당 기능 실행
+			ResultSet buildingSet = this.ddb.query(
+					buildingSQL, funcSet.getInt("building_id"));
+			while(buildingSet.next()) {
+				Logger.getInstance().add("nextTurn", 
+						"building_id : " + 
+						buildingSet.getString("building_id"));
+				boolean isBenefitted = buildingSet.getInt("isBenefitted") == 1;
+				addValue(funcSet, isBenefitted);
+			}
+		}
 	}
-	
-	//빌딩에서 특정 버튼을 눌렀을 때 이에 대해 처리해주는 것
+
 	//building_id : ddb상 실질적인 빌딩 id
-	public boolean execute(ButtonData data, int building_id) throws SQLException {
-		SQLiteManager sdb = DB.getInstance(DB.DB_STATIC);
-		SQLiteManager ddb = DB.getInstance(DB.DB_DYNAMIC);
-		int function_id = data.getId();
+	/**
+	 * 빌딩에서 특정 버튼을 눌렀을 때 이에 대해 처리해주는 것
+	 * @param function_id sdb상 빌딩 기능 id
+	 * @param building_id ddb상 실질적인 빌딩 id
+	 * @return
+	 * @throws SQLException
+	 */
+	public boolean execute(int function_id, int building_id) throws SQLException {
+		//int function_id = data.getId();
 		String funcSQL = "select resource_id, value, add_value, type, lack_type"
 				+ " from BuildingFunction"
 				+ " where function_id = ?";
-		ResultSet funcSet = sdb.query(funcSQL, function_id);
+		ResultSet funcSet = this.sdb.query(funcSQL, function_id);
 
 		//1. add_value가 포함되어야 하는가?
 		String buildingSQL = "select isBenefitted from Building"
 				+ " where building_id = ?";
-		ResultSet buildingSet = ddb.query(buildingSQL, building_id);
+		ResultSet buildingSet = this.ddb.query(buildingSQL, building_id);
 		boolean isBenefitted = (buildingSet.getInt("isBenefitted") == 1)? true : false;
 		
 		//2. lack_type이 있다면 조건을 만족하는가?
@@ -93,7 +154,7 @@ public class Building implements ButtonListener {
 				
 				String lackSQL = "select number from Resource"
 						+ " where resource_id = ?";
-				ResultSet lackSet = ddb.query(lackSQL, rsrc);
+				ResultSet lackSet = this.ddb.query(lackSQL, rsrc);
 				lackSet.next();
 				
 				//실제 가지고 있는 값 < 필요한 값
@@ -103,22 +164,38 @@ public class Building implements ButtonListener {
 			}
 		}
 		funcSet.beforeFirst();
-		
 		//3. resource 증가
 		while(funcSet.next()) {
-			int rsrc = funcSet.getInt("resource_id");
-			//건물이 해당 지형에 친화적인지 확인 후 값 반환
-			int value = getValue(funcSet, isBenefitted);
-			
-			String updateSQL = "update Resource"
-					+ " set number = number + ?"
-					+ " where resource_id = ?";
-			ddb.execute(updateSQL, value, rsrc);
-		}
+			addValue(funcSet, isBenefitted);
+		}		
+		//4. 월드맵 기능시 어떻게 처리할 것인가?
 		
 		return true;
 	}
 	
+	/**
+	 * @param funcSet 추가해야하는 resource_id, value, add_value를 소유한 ResultSet
+	 * @param isBenefitted 해당 건물이 지역 이득을 보고 있는가
+	 * @throws SQLException
+	 */
+	public void addValue(ResultSet funcSet, boolean isBenefitted) throws SQLException {
+		int rsrc = funcSet.getInt("resource_id");
+		//건물이 해당 지형에 친화적인지 확인 후 값 반환
+		int value = getValue(funcSet, isBenefitted);
+		
+		String updateSQL = "update Resource"
+				+ " set number = number + ?"
+				+ " where resource_id = ?";
+		this.ddb.execute(updateSQL, value, rsrc);
+	}
+	
+	/**
+	 * 건물이 지형의 이점을 보고 있는지를 파악해 정확한 value값을 반환
+	 * @param funcSet
+	 * @param isBenefitted
+	 * @return
+	 * @throws SQLException
+	 */
 	public int getValue(ResultSet funcSet, boolean isBenefitted) throws SQLException {
 		int value = funcSet.getInt("value");
 		//건물이 지형친화적인가?
@@ -130,9 +207,11 @@ public class Building implements ButtonListener {
 	}
 
 	//내가 어느 버튼을 선택했는가?
+	//빌딩 기능 실행만 이곳에 따라옴.
 	@Override
 	public void onTouch(ButtonData btn) {
 		// TODO Auto-generated method stub
-		
+		//1. normal, train만 씀
+		//2. execute하면 끝
 	}
 }

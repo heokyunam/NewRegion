@@ -13,10 +13,14 @@ public class CampaignApp extends AppController {
 	private ArrayList<MessageData> datas = new ArrayList<>();
 	private int campaign = -1, mission = -1;
 	
+	/**
+	 * 현재 캠페인이 진행된 상황을 처음으로 초기화한다.
+	 * @throws SQLException
+	 */
 	public void clear() throws SQLException {
 		ResultSet set = ddb.query("select * from Campaign;");
 		if(set.isClosed()) {
-			//데이터가 존재하지 않음. 첰부터 시작
+			//데이터가 존재하지 않음. 첨부터 시작
 			ddb.execute("insert into Campaign(user_id, campaign_id, mission_id) values (?,?,?);"
 					,1, 1, 1);
 		}
@@ -27,6 +31,11 @@ public class CampaignApp extends AppController {
 	}
 	//처음에 어디까지 진행했는지는 알아야 하니까
 	//없으면 새로 만들고
+	/**
+	 * 캠페인이 어디까지 진행되었는지 확인하고 이를 반영한다
+	 * @return
+	 * @throws SQLException
+	 */
 	public boolean load() throws SQLException {
 		ResultSet set = ddb.query("select * from Campaign;");
 		if(set.isClosed()) {
@@ -45,6 +54,11 @@ public class CampaignApp extends AppController {
 		return false;
 	}
 	
+	/**
+	 * 캠페인시 캐릭터들의 대화 데이터에 대해 불러온다
+	 * @return
+	 * @throws SQLException
+	 */
 	public boolean loadMessageData() throws SQLException {
 		datas.clear();
 		if(mission == 1) {
@@ -68,7 +82,12 @@ public class CampaignApp extends AppController {
 		}
 		return datas.size() > 0;
 	}
-	//퀘스트 조건에 부합하는지 확인한다
+	
+	/**
+	 * 퀘스트 조건에 부합하는지 확인한다
+	 * @return
+	 * @throws SQLException
+	 */
 	//마지막 미션 판정일경우 메시지만 뱉은 후 조건이 없으므로 true를 반환한다. 쉽게 넘어갈 수 있다
 	public boolean checkCondition() throws SQLException {
 		ResultSet missionSet = sdb.query("select * from CampaignMission where campaign_id = ? and mission_id = ?;"
@@ -80,7 +99,7 @@ public class CampaignApp extends AppController {
 		return value;
 	}
 	
-	public boolean checkConditionEach(ResultSet missionSet) throws SQLException {
+	private boolean checkConditionEach(ResultSet missionSet) throws SQLException {
 		int event = missionSet.getInt("event");
 		int id = missionSet.getInt("data_id");
 		int num = missionSet.getInt("number");
@@ -112,7 +131,11 @@ public class CampaignApp extends AppController {
 		
 		return false;
 	}
-	//다음 미션으로 넘어갈때 필요한 데이터들을 넣어준다
+	/**
+	 * 다음 미션으로 넘어갈때 필요한 데이터들을 넣어준다
+	 * @return
+	 * @throws SQLException
+	 */
 	public boolean nextLevel() throws SQLException {
 		this.mission++;
 		if(!loadMessageData()) {
