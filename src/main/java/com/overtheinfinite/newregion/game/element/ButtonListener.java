@@ -1,5 +1,7 @@
 package main.java.com.overtheinfinite.newregion.game.element;
 
+import java.sql.SQLException;
+
 public interface ButtonListener {
-	public void onTouch(ButtonData btn);
+	public boolean onTouch(ButtonData btn) throws SQLException ;
 }

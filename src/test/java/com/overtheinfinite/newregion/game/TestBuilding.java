@@ -1,47 +1,31 @@
 package test.java.com.overtheinfinite.newregion.game;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
+import main.java.com.overtheinfinite.newregion.game.Builder;
 import main.java.com.overtheinfinite.newregion.game.Building;
 import main.java.com.overtheinfinite.newregion.game.element.ButtonData;
+import main.java.com.overtheinfinite.newregion.game.element.Resource;
 import main.java.com.overtheinfinite.newregion.game.element.ViewData;
 import main.java.com.overtheinfinite.newregion.tools.DB;
 import main.java.com.overtheinfinite.newregion.tools.Logger;
 import main.java.com.overtheinfinite.newregion.tools.SQLiteManager;
 
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TestBuilding {
 	@Test
-	public void init() throws SQLException, IOException {
+	public void ainit() throws SQLException, IOException {
 		DB.delete(2);
 		DB.init(2);
-	}
-
-	@Test
-	public void testGetAllBuildingData() throws SQLException {
-		Building building = new Building();
-		ButtonData[] btns = building.getAllBuildingData();
-		String[] img = {
-				"buildingbutton/armory.png",
-				"buildingbutton/castle.png",
-				"buildingbutton/church.png",
-				"buildingbutton/horse_ranch.png",
-				"buildingbutton/house.png",
-				"buildingbutton/ranch.png",
-				"buildingbutton/store.png",
-				"buildingbutton/windmill.png"
-
-		};
-		for(int i = 0; i < btns.length; i++) {
-			ButtonData btn = btns[i];
-			int id = btn.getId();
-			assertEquals(img[i], btn.getFilename());
-		}
 	}
 
 	@Test
@@ -119,6 +103,30 @@ public class TestBuilding {
 				+ " where resource_id = ?", 4);
 		rsrcSet.next();
 		assertEquals(3, rsrcSet.getInt("number"));
+	}
+	
+	@Test
+	public void testOnTouch() throws SQLException {
+		Building building = new Building();
+		ButtonData data = new ButtonData(building,
+				"test/test.png",
+				"train",
+				1, 1); 
+		SQLiteManager ddb = DB.getInstance(DB.DB_DYNAMIC);
+		ddb.execute("update Resource set number = 10"
+				+ " where resource_id = ?", Resource.MEAT);//°í±â
+		
+		building.onTouch(data);
+		
+		ResultSet set = ddb.query("select number from Resource "
+				+ "where resource_id in (?,?) order by resource_id", 
+				Resource.SOLDIER, Resource.MEAT);
+		
+		int[] expected = {1, 9};
+		for(int i = 0; i < 2; i++) {
+			set.next();
+			assertEquals(expected[i], set.getInt("number"));
+		}
 	}
 
 }

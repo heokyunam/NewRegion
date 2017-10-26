@@ -25,35 +25,12 @@ public class Building implements ButtonListener {
 		this.sdb = DB.getInstance(DB.DB_STATIC);
 		this.ddb = DB.getInstance(DB.DB_DYNAMIC);
 	}
-	/**빈 타일을 터치해 빌딩을 건설해야할 때 이에 걸맞는 값으로
-	 * 
-	 * @return
-	 * @throws SQLException
-	 */
-	public ButtonData[] getAllBuildingData() throws SQLException {
-		String getAllBuildingSQL = "select b.building_id id"
-				+ ", b.name name, i.image_name image"
-				+ " from Building b, ImageName i"
-				+ " where b.button_image_id = i.image_id;";
-		ResultSet allBuildingSet = this.sdb.query(getAllBuildingSQL);
-		LinkedList<ButtonData> datas = new LinkedList<>();
-		while(allBuildingSet.next()) {
-			ButtonData temp = new ButtonData(new Builder(), 
-					allBuildingSet.getString("image"),
-					"build",
-					allBuildingSet.getInt("id"));
-			datas.add(temp);
-		}
-		ButtonData[] btns = new ButtonData[datas.size()];
-		datas.toArray(btns);
-		return btns;
-	}
 	
 	/**
 	 * ddb의 빌딩 id를 입력해주면 이에 필요한 뷰와 버튼 데이터를 반환해준다
 	 * @param views
 	 * @param btns
-	 * @param building_id
+	 * @param building_id ddb의 빌딩 id
 	 * @throws SQLException
 	 */
 	public void getBuildingData(ViewData[] views, ButtonData[] btns, int building_id) throws SQLException {
@@ -65,7 +42,8 @@ public class Building implements ButtonListener {
 		//building_id를 처음 쓸때
 		
 		//load about button data
-		String btnSQL = "select f.function_id id, f.name name, i.image_name image"
+		String btnSQL = "select f.function_id func,"
+				+ " f.name name, i.image_name image"
 				+ " from BuildingFunction f, Imagename i"
 				+ " where f.button_image_id = i.image_id"
 				+ " and f.building_id = ?";
@@ -76,7 +54,8 @@ public class Building implements ButtonListener {
 			btns[i] = new ButtonData(this,
 					btnSet.getString("image"),
 					"function",
-					btnSet.getInt("id"));
+					btnSet.getInt("func"),
+					building_id);
 		}
 		
 		//load about view data
@@ -145,6 +124,7 @@ public class Building implements ButtonListener {
 		boolean isBenefitted = (buildingSet.getInt("isBenefitted") == 1)? true : false;
 		
 		//2. lack_type이 있다면 조건을 만족하는가?
+		//감소시 해당 개수가 0이상인지 확인만 함. 감소는 3번에서 함.
 		while(funcSet.next()) {
 			int lack_type = funcSet.getInt("lack_type");
 			if(lack_type == 1) {
@@ -168,6 +148,7 @@ public class Building implements ButtonListener {
 			}
 		}
 		funcSet = this.sdb.query(funcSQL, function_id);
+		
 		//3. resource 증가
 		while(funcSet.next()) {
 			Logger.getInstance().add("execute", 
@@ -215,9 +196,22 @@ public class Building implements ButtonListener {
 	//내가 어느 버튼을 선택했는가?
 	//빌딩 기능 실행만 이곳에 따라옴.
 	@Override
-	public void onTouch(ButtonData btn) {
+	public boolean onTouch(ButtonData btn) throws SQLException {
 		// TODO Auto-generated method stub
 		//1. normal, train만 씀
+		String functionSQL = "select type"
+				+ " from BuildingFunction"
+				+ " where function_id = ?";
+		ResultSet functionSet = this.sdb.query(functionSQL, 
+				btn.getFunctionId());
+		
+		while(functionSet.next()) {
+			int type = functionSet.getInt("type");
+			if(type != FUNC_NORMAL && type != FUNC_TRAIN) {
+				return false;
+			}
+		}
 		//2. execute하면 끝
+		return execute(btn.getFunctionId(), btn.getBuildingId());
 	}
 }

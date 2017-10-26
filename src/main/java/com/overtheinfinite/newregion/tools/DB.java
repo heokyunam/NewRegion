@@ -4,12 +4,12 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Hashtable;
 
-public class DB {
+public class DB extends SQLiteManager {
 	public static final String DB_DYNAMIC = "ddb.db", DB_STATIC = "sdb.db";
-	private static Hashtable<String, SQLiteManager> managers = new Hashtable<>();
-	public static SQLiteManager getInstance(String name) throws SQLException {
+	private static Hashtable<String, DB> managers = new Hashtable<>();
+	public static DB getInstance(String name) throws SQLException {
 		if(managers.get(name) == null) {
-			SQLiteManager manager = new SQLiteManager();
+			DB manager = new DB();
 			manager.init(name);
 			managers.put(name, manager);
 		}

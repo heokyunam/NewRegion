@@ -26,7 +26,7 @@ public class AppController {
 	 * @ddb History
 	 * @throws SQLException
 	 */
-	public void onEvent(int event) throws SQLException {
-		ddb.execute("insert into History(event_type) values(?)", event); 
+	public void onEvent(int event, int arg) throws SQLException {
+		ddb.execute("insert into History(event_type,arg) values(?,?)", event,arg); 
 	}
 }
